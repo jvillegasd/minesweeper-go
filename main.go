@@ -35,45 +35,55 @@ var directions = [8][2]int{
 
 
 func (g *Game) revealAllMines() {
-	for r := range g.grid {
-		for c := range g.grid[r] {
-			if g.grid[r][c].isMine {
-				g.grid[r][c].isRevealed = true
+	for i := range g.grid {
+		for j := range g.grid[i] {
+			if g.grid[i][j].isMine {
+				g.grid[i][j].isRevealed = true
 			}
 		}
 	}
 }
 
 
-func (g *Game) revealTile(r, c int) {
+func (g *Game) revealTile(i, j int) {
 	height := len(g.grid)
 	if height == 0 {
 		return
 	}
 
 	width := len(g.grid[0])
-	if r < 0 || r >= height || c < 0 || c >= width {
+	if i < 0 || i >= height || j < 0 || j >= width {
 		return
 	}
 
-	if g.grid[r][c].isRevealed {
+	if g.grid[i][j].isRevealed {
 		return
 	}
 	
-	g.grid[r][c].isRevealed = true
-	if g.grid[r][c].isMine {
+	g.grid[i][j].isRevealed = true
+	if g.grid[i][j].isMine {
 		g.state = enums.StateLost
 		return
 	}
 
-	if g.grid[r][c].adjMines == 0 {
+	if g.grid[i][j].adjMines == 0 {
 		for _, d := range directions {
-			nr, nc := r + d[0], c + d[1]
-			g.revealTile(nr, nc)
+			ni, nj := i + d[0], j + d[1]
+			g.revealTile(ni, nj)
 		}
 	}
 }
 
+func (g *Game) checkWin() bool {
+	for i := range g.grid {
+		for j := range g.grid[i] {
+			if !g.grid[i][j].isMine && !g.grid[i][j].isRevealed {
+				return false
+			}
+		}
+	}
+	return true
+}
 
 func main() {
 	fmt.Println("Hello, World!")
