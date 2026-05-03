@@ -68,7 +68,7 @@ func (g *Game) revealTile(i, j int) {
 
 	if g.grid[i][j].adjMines == 0 {
 		for _, d := range directions {
-			ni, nj := i + d[0], j + d[1]
+			ni, nj := i+d[0], j+d[1]
 			g.revealTile(ni, nj)
 		}
 	}
@@ -85,6 +85,59 @@ func (g *Game) checkWin() bool {
 	return true
 }
 
+func NewGame(d enums.Difficulty) *Game {
+	level, ok := enums.Levels[d]
+	if !ok {
+		level = enums.Levels[enums.Beginner]
+	}
+
+	grid := make([][]Tile, level.Height)
+	for i := range grid {
+		grid[i] = make([]Tile, level.Width)
+	}
+
+	placed := 0
+	totalTiles := level.Height * level.Width
+	for placed < level.Mines {
+		idx := rand.IntN(totalTiles)
+		i, j := idx/level.Width, idx%level.Width
+		if grid[i][j].isMine {
+			continue
+		}
+
+		grid[i][j].isMine = true
+		placed++
+	}
+
+	for i := range grid {
+		for j := range grid[i] {
+			if grid[i][j].isMine {
+				continue
+			}
+
+			count := 0
+			for _, d := range directions {
+				ni, nj := i+d[0], j+d[1]
+				if ni < 0 || ni >= level.Height || nj < 0 || nj >= level.Width {
+					continue
+				}
+				if grid[ni][nj].isMine {
+					count++
+				}
+			}
+
+			grid[i][j].adjMines = count
+		}
+	}
+
+	return &Game{
+		grid: grid,
+		state: enums.StatePlaying,
+		totalMines: level.Mines,
+		totalTiles: totalTiles,
+	}
+}
+
 func main() {
 	screen, err := tcell.NewScreen()
 	if err != nil {
@@ -96,4 +149,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer screen.Fini()
+
+	game := NewGame(enums.Beginner)
+	_ = game
 }
