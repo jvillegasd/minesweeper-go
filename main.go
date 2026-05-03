@@ -86,5 +86,14 @@ func (g *Game) checkWin() bool {
 }
 
 func main() {
-	fmt.Println("Hello, World!")
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		fmt.Println("failed to create screen:", err)
+		os.Exit(1)
+	}
+	if err := screen.Init(); err != nil {
+		fmt.Println("failed to init screen:", err)
+		os.Exit(1)
+	}
+	defer screen.Fini()
 }
