@@ -1,11 +1,10 @@
-
 package enums
 
 type GameState int
 
 const (
-	StateLost GameState = iota,
-	StateWon,
+	StateLost GameState = iota
+	StateWon
 	StatePlaying
 )
 
