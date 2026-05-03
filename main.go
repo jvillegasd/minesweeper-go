@@ -12,18 +12,48 @@ import (
 
 type Tile struct {
 	isMine bool
-	isClicked bool
+	isRevealed bool
 	isFlagged bool
 	isHover bool
 	adjMines int
 }
 
-type Grid struct {
+type Game struct {
 	grid [][]Tile
+	state string
+	totalMines int
+	totalTiles int
 }
 
-var gameState string
-var totalMines, totalTiles int
+
+func (g *Game) revealAllMines() {
+	for r := range g.grid {
+		for c := range g.grid[r] {
+			if g.grid[r][c].isMine {
+				g.grid[r][c].isRevealed = true
+			}
+		}
+	}
+}
+
+
+func (g *Game) revealTile(r, c int) {
+	height := len(g.grid)
+	if height == 0 {
+		return
+	}
+
+	width := len(g.grid[0])
+	if r < 0 || r > height || c < width || c > width {
+		return
+	}
+
+	if g.grid[r][c].isRevealed {
+		return
+	}
+
+
+}
 
 
 func main() {
