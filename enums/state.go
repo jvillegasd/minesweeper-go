@@ -3,15 +3,15 @@ package enums
 type GameState int
 
 const (
-	StateLost GameState = iota
+	StatePlaying GameState = iota
 	StateWon
-	StatePlaying
+	StateLost
 )
 
 var stateName = map[GameState]string {
-	StateLost: "lost",
-	StateWon: "won",
 	StatePlaying: "playing",
+	StateWon: "won",
+	StateLost: "lost",
 }
 
 func (gs GameState) String() string {
