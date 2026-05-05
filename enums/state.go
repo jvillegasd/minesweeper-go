@@ -8,13 +8,12 @@ const (
 	StateLost
 )
 
-var stateName = map[GameState]string {
+var stateName = map[GameState]string{
 	StatePlaying: "playing",
-	StateWon: "won",
-	StateLost: "lost",
+	StateWon:     "won",
+	StateLost:    "lost",
 }
 
 func (gs GameState) String() string {
 	return stateName[gs]
 }
-
