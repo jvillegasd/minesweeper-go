@@ -7,13 +7,14 @@ import (
 )
 
 type Game struct {
-	grid [][]Tile
-	state enums.GameState
-	totalMines int
-	totalTiles int
-	cursorI int
-	cursorJ int
-	difficulty enums.Difficulty
+	grid        [][]Tile
+	state       enums.GameState
+	totalMines  int
+	totalTiles  int
+	flagsPlaced int
+	cursorI     int
+	cursorJ     int
+	difficulty  enums.Difficulty
 }
 
 func NewGame(d enums.Difficulty) *Game {
@@ -62,12 +63,12 @@ func NewGame(d enums.Difficulty) *Game {
 	}
 
 	return &Game{
-		grid: grid,
-		state: enums.StatePlaying,
+		grid:       grid,
+		state:      enums.StatePlaying,
 		totalMines: level.Mines,
 		totalTiles: totalTiles,
-		cursorI: 0,
-		cursorJ: 0,
+		cursorI:    0,
+		cursorJ:    0,
 		difficulty: d,
 	}
 }

@@ -3,16 +3,16 @@ package main
 import "github.com/minesweeper-go/enums"
 
 type Tile struct {
-	isMine bool
+	isMine     bool
 	isRevealed bool
-	isFlagged bool
-	adjMines int
+	isFlagged  bool
+	adjMines   int
 }
 
 var directions = [8][2]int{
 	{-1, -1}, {-1, 0}, {-1, 1},
-	{ 0, -1},          { 0, 1},
-	{ 1, -1}, { 1, 0}, { 1, 1},
+	{0, -1}, {0, 1},
+	{1, -1}, {1, 0}, {1, 1},
 }
 
 func (g *Game) isValidCoord(i, j int) bool {
@@ -72,6 +72,12 @@ func (g *Game) toggleFlag(i, j int) {
 	}
 
 	g.grid[i][j].isFlagged = !g.grid[i][j].isFlagged
+
+	if g.grid[i][j].isFlagged {
+		g.flagsPlaced++
+	} else {
+		g.flagsPlaced--
+	}
 }
 
 func (g *Game) checkWin() bool {

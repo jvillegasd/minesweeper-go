@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/minesweeper-go/enums"
 )
@@ -61,9 +62,9 @@ func (g *Game) drawBoard(s tcell.Screen) {
 			}
 
 			x, y := j*cellWidth, i
-			s.SetContent(x,   y, ' ',   nil, style)
+			s.SetContent(x, y, ' ', nil, style)
 			s.SetContent(x+1, y, glyph, nil, style)
-			s.SetContent(x+2, y, ' ',   nil, style)
+			s.SetContent(x+2, y, ' ', nil, style)
 		}
 	}
 }
@@ -89,12 +90,32 @@ func (g *Game) drawHUD(s tcell.Screen) {
 
 	x := (boardWidth - len(msg)) / 2
 	x = max(x, 0)
+	y := boardBottom + 1
+	drawString(s, x, y, msg, msgStyle)
+}
+
+func (g *Game) drawStatus(s tcell.Screen) {
+	msg := fmt.Sprintf("flags: %d / %d", g.flagsPlaced, g.totalMines)
+
+	fg := tcell.ColorYellow
+	if g.flagsPlaced > g.totalMines {
+		fg = tcell.ColorRed
+	}
+	msgStyle := tcell.StyleDefault.
+		Background(tcell.ColorBlack).
+		Foreground(fg)
+
+	boardWidth := len(g.grid[0]) * cellWidth
+	boardBottom := len(g.grid)
+	x := (boardWidth - len(msg)) / 2
+	x = max(x, 0)
 	drawString(s, x, boardBottom, msg, msgStyle)
 }
 
 func (g *Game) draw(s tcell.Screen) {
 	s.Clear()
 	g.drawBoard(s)
+	g.drawStatus(s)
 	g.drawHUD(s)
 	s.Show()
 }
