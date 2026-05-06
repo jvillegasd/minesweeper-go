@@ -153,4 +153,4 @@ gofmt -w .      # format
 
 ## License
 
-Choose your own — none specified.
+[MIT](LICENSE)
