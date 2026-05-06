@@ -15,6 +15,13 @@ var titleArt = []string{
 	"╚═╝     ╚═╝╚═╝╚═╝  ╚═╝╚══════╝╚══════╝ ╚══╝╚══╝ ╚══════╝╚══════╝╚═╝     ╚══════╝╚═╝  ╚═╝",
 }
 
+const (
+	bigTitleW   = 91
+	bigOptionsW = 41
+	compactMinW = 19
+	compactMinH = 10
+)
+
 type segment struct {
 	text  string
 	style tcell.Style
@@ -46,7 +53,10 @@ func drawSegments(s tcell.Screen, x, y int, segs []segment) {
 	}
 }
 
-func menuRows() []menuRow {
+func menuRows(sw int) []menuRow {
+	bigTitle := sw >= bigTitleW
+	bigOptions := sw >= bigOptionsW
+
 	titleStyles := []tcell.Style{
 		base.Foreground(tcell.NewRGBColor(255, 100, 100)).Bold(true),
 		base.Foreground(tcell.NewRGBColor(235, 80, 80)).Bold(true),
@@ -65,38 +75,80 @@ func menuRows() []menuRow {
 	amber := base.Foreground(accentYellow).Bold(true)
 	red := base.Foreground(accentRed).Bold(true)
 
-	separator := strings.Repeat("━", 60)
+	rows := make([]menuRow, 0, 16)
 
-	rows := make([]menuRow, 0, len(titleArt)+16)
-	for i, line := range titleArt {
-		rows = append(rows, plainRow(line, titleStyles[i]))
+	if bigTitle {
+		for i, line := range titleArt {
+			rows = append(rows, plainRow(line, titleStyles[i]))
+		}
+	} else {
+		rows = append(rows,
+			menuRow{segments: []segment{
+				{"✦ ", titleStyles[0]},
+				{"MINESWEEPER", titleStyles[0]},
+				{" ✦", titleStyles[0]},
+			}},
+		)
 	}
 
 	rows = append(rows,
 		plainRow("", silver),
 		plainRow("✦  built in Go  ✦", tagline),
 		plainRow("", silver),
-		plainRow(separator, dim),
+	)
+
+	sepWidth := 60
+	if sepWidth > sw-4 {
+		sepWidth = sw - 4
+	}
+	if sepWidth < 10 {
+		sepWidth = 10
+	}
+	rows = append(rows,
+		plainRow(strings.Repeat("━", sepWidth), dim),
 		plainRow("", silver),
 		plainRow("SELECT A DIFFICULTY", header),
 		plainRow("", silver),
-		menuRow{segments: []segment{
-			{"[ 1 ]  ", keyBracket},
-			{"Beginner       ", green},
-			{"·  9 × 9    ·  10 mines", silver},
-		}},
-		menuRow{segments: []segment{
-			{"[ 2 ]  ", keyBracket},
-			{"Intermediate   ", amber},
-			{"·  16 × 16  ·  40 mines", silver},
-		}},
-		menuRow{segments: []segment{
-			{"[ 3 ]  ", keyBracket},
-			{"Expert         ", red},
-			{"·  30 × 16  ·  99 mines", silver},
-		}},
+	)
+
+	if bigOptions {
+		rows = append(rows,
+			menuRow{segments: []segment{
+				{"[ 1 ]  ", keyBracket},
+				{"Beginner       ", green},
+				{"·  9 × 9    ·  10 mines", silver},
+			}},
+			menuRow{segments: []segment{
+				{"[ 2 ]  ", keyBracket},
+				{"Intermediate   ", amber},
+				{"·  16 × 16  ·  40 mines", silver},
+			}},
+			menuRow{segments: []segment{
+				{"[ 3 ]  ", keyBracket},
+				{"Expert         ", red},
+				{"·  30 × 16  ·  99 mines", silver},
+			}},
+		)
+	} else {
+		rows = append(rows,
+			menuRow{segments: []segment{
+				{"[1] ", keyBracket},
+				{"Beginner", green},
+			}},
+			menuRow{segments: []segment{
+				{"[2] ", keyBracket},
+				{"Intermediate", amber},
+			}},
+			menuRow{segments: []segment{
+				{"[3] ", keyBracket},
+				{"Expert", red},
+			}},
+		)
+	}
+
+	rows = append(rows,
 		plainRow("", silver),
-		plainRow(separator, dim),
+		plainRow(strings.Repeat("━", sepWidth), dim),
 		plainRow("", silver),
 		menuRow{segments: []segment{
 			{"[ Q ]  ", keyBracket},
@@ -110,26 +162,25 @@ func drawMenu(s tcell.Screen) {
 	s.Clear()
 	sw, sh := s.Size()
 
-	rows := menuRows()
-
-	needW := 0
-	for _, r := range rows {
-		if w := r.width(); w > needW {
-			needW = w
-		}
-	}
-	needH := len(rows)
-
-	if sw < needW || sh < needH {
+	if sw < compactMinW || sh < compactMinH {
 		style := base.Foreground(accentRed).Bold(true)
-		drawString(s, 0, 0, "terminal too small for menu — resize", style)
+		drawString(s, 0, 0, "terminal too small — resize", style)
 		s.Show()
 		return
 	}
 
+	rows := menuRows(sw)
+	needH := len(rows)
 	startY := (sh - needH) / 2
+	if startY < 0 {
+		startY = 0
+	}
+
 	for i, r := range rows {
 		x := (sw - r.width()) / 2
+		if x < 0 {
+			x = 0
+		}
 		drawSegments(s, x, startY+i, r.segments)
 	}
 	s.Show()
