@@ -9,6 +9,13 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
+type gameResult int
+
+const (
+	gameResultQuit gameResult = iota
+	gameResultMenu
+)
+
 func parseDifficulty(arg string) (Difficulty, bool) {
 	switch strings.ToLower(arg) {
 	case "beginner", "b":
@@ -19,6 +26,44 @@ func parseDifficulty(arg string) (Difficulty, bool) {
 		return Expert, true
 	}
 	return 0, false
+}
+
+func runGame(screen tcell.Screen, game *Game) gameResult {
+	for {
+		ev := screen.PollEvent()
+		switch ev := ev.(type) {
+		case *tcell.EventKey:
+			if action, ok := dispatch(ev, metaKeyBindings, metaRuneBindings); ok {
+				if action(game) {
+					return gameResultQuit
+				}
+				if game.requestMenu {
+					game.requestMenu = false
+					return gameResultMenu
+				}
+				if game.requestLeaderboard {
+					game.requestLeaderboard = false
+					runLeaderboard(screen)
+				}
+				game.draw(screen)
+				continue
+			}
+
+			if game.state != StatePlaying {
+				continue
+			}
+
+			if action, ok := dispatch(ev, gameplayKeyBindings, gameplayRuneBindings); ok {
+				action(game)
+				game.draw(screen)
+			}
+		case *tcell.EventResize:
+			screen.Sync()
+			game.draw(screen)
+		case *tcell.EventInterrupt:
+			game.draw(screen)
+		}
+	}
 }
 
 func main() {
@@ -50,16 +95,7 @@ func main() {
 	screen.SetStyle(tcell.StyleDefault)
 	defer screen.Fini()
 
-	if !skipMenu {
-		d, ok := runMenu(screen)
-		if !ok {
-			return
-		}
-		startDifficulty = d
-	}
-
-	game := NewGame(startDifficulty)
-	game.draw(screen)
+	leaderboard = loadLeaderboard()
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
@@ -69,31 +105,27 @@ func main() {
 		}
 	}()
 
+	currentDifficulty := startDifficulty
+	showMenu := !skipMenu
+
 	for {
-		ev := screen.PollEvent()
-		switch ev := ev.(type) {
-		case *tcell.EventKey:
-			if action, ok := dispatch(ev, metaKeyBindings, metaRuneBindings); ok {
-				if action(game) {
-					return
-				}
-				game.draw(screen)
-				continue
+		if showMenu {
+			d, ok := runMenu(screen)
+			if !ok {
+				return
 			}
+			currentDifficulty = d
+		}
+		showMenu = true
 
-			if game.state != StatePlaying {
-				continue
-			}
+		game := NewGame(currentDifficulty)
+		game.draw(screen)
 
-			if action, ok := dispatch(ev, gameplayKeyBindings, gameplayRuneBindings); ok {
-				action(game)
-				game.draw(screen)
-			}
-		case *tcell.EventResize:
-			screen.Sync()
-			game.draw(screen)
-		case *tcell.EventInterrupt:
-			game.draw(screen)
+		switch runGame(screen, game) {
+		case gameResultQuit:
+			return
+		case gameResultMenu:
+			currentDifficulty = game.difficulty
 		}
 	}
 }

@@ -11,6 +11,8 @@ var metaKeyBindings = map[tcell.Key]Action{
 var metaRuneBindings = map[rune]Action{
 	'q': func(g *Game) bool { return true },
 	'r': func(g *Game) bool { g.Restart(); return false },
+	'm': func(g *Game) bool { g.RequestMenu(); return false },
+	'l': func(g *Game) bool { g.RequestLeaderboard(); return false },
 	'1': func(g *Game) bool { g.SetDifficulty(Beginner); return false },
 	'2': func(g *Game) bool { g.SetDifficulty(Intermediate); return false },
 	'3': func(g *Game) bool { g.SetDifficulty(Expert); return false },

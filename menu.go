@@ -1,22 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
 )
 
-var titleArt = []string{
-	"███╗   ███╗██╗███╗   ██╗███████╗███████╗██╗    ██╗███████╗███████╗██████╗ ███████╗██████╗ ",
-	"████╗ ████║██║████╗  ██║██╔════╝██╔════╝██║    ██║██╔════╝██╔════╝██╔══██╗██╔════╝██╔══██╗",
-	"██╔████╔██║██║██╔██╗ ██║█████╗  ███████╗██║ █╗ ██║█████╗  █████╗  ██████╔╝█████╗  ██████╔╝",
-	"██║╚██╔╝██║██║██║╚██╗██║██╔══╝  ╚════██║██║███╗██║██╔══╝  ██╔══╝  ██╔═══╝ ██╔══╝  ██╔══██╗",
-	"██║ ╚═╝ ██║██║██║ ╚████║███████╗███████║╚███╔███╔╝███████╗███████╗██║     ███████╗██║  ██║",
-	"╚═╝     ╚═╝╚═╝╚═╝  ╚═╝╚══════╝╚══════╝ ╚══╝╚══╝ ╚══════╝╚══════╝╚═╝     ╚══════╝╚═╝  ╚═╝",
-}
-
 const (
-	bigTitleW   = 91
 	bigOptionsW = 41
 	compactMinW = 19
 	compactMinH = 10
@@ -54,17 +45,9 @@ func drawSegments(s tcell.Screen, x, y int, segs []segment) {
 }
 
 func menuRows(sw int) []menuRow {
-	bigTitle := sw >= bigTitleW
 	bigOptions := sw >= bigOptionsW
 
-	titleStyles := []tcell.Style{
-		base.Foreground(tcell.NewRGBColor(255, 100, 100)).Bold(true),
-		base.Foreground(tcell.NewRGBColor(235, 80, 80)).Bold(true),
-		base.Foreground(tcell.NewRGBColor(215, 60, 60)).Bold(true),
-		base.Foreground(tcell.NewRGBColor(190, 45, 45)).Bold(true),
-		base.Foreground(tcell.NewRGBColor(165, 30, 30)).Bold(true),
-		base.Foreground(tcell.NewRGBColor(140, 20, 20)).Bold(true),
-	}
+	titleStyle := base.Foreground(tcell.NewRGBColor(255, 100, 100)).Bold(true)
 
 	tagline := base.Foreground(textSilver).Italic(true)
 	header := base.Foreground(accentYellow).Bold(true)
@@ -77,19 +60,13 @@ func menuRows(sw int) []menuRow {
 
 	rows := make([]menuRow, 0, 16)
 
-	if bigTitle {
-		for i, line := range titleArt {
-			rows = append(rows, plainRow(line, titleStyles[i]))
-		}
-	} else {
-		rows = append(rows,
-			menuRow{segments: []segment{
-				{"✦ ", titleStyles[0]},
-				{"MINESWEEPER", titleStyles[0]},
-				{" ✦", titleStyles[0]},
-			}},
-		)
-	}
+	rows = append(rows,
+		menuRow{segments: []segment{
+			{"✦ ", titleStyle},
+			{"MINESWEEPER", titleStyle},
+			{" ✦", titleStyle},
+		}},
+	)
 
 	rows = append(rows,
 		plainRow("", silver),
@@ -111,22 +88,36 @@ func menuRows(sw int) []menuRow {
 		plainRow("", silver),
 	)
 
+	bestText := func(d Difficulty) (string, tcell.Style) {
+		if best, ok := leaderboard.best(d); ok {
+			return fmt.Sprintf("  ·  best %ds", best), base.Foreground(accentGreen)
+		}
+		return "", silver
+	}
+
 	if bigOptions {
+		bBest, bBestStyle := bestText(Beginner)
+		iBest, iBestStyle := bestText(Intermediate)
+		eBest, eBestStyle := bestText(Expert)
+
 		rows = append(rows,
 			menuRow{segments: []segment{
 				{"[ 1 ]  ", keyBracket},
 				{"Beginner       ", green},
 				{"·  9 × 9    ·  10 mines", silver},
+				{bBest, bBestStyle},
 			}},
 			menuRow{segments: []segment{
 				{"[ 2 ]  ", keyBracket},
 				{"Intermediate   ", amber},
 				{"·  16 × 16  ·  40 mines", silver},
+				{iBest, iBestStyle},
 			}},
 			menuRow{segments: []segment{
 				{"[ 3 ]  ", keyBracket},
 				{"Expert         ", red},
 				{"·  30 × 16  ·  99 mines", silver},
+				{eBest, eBestStyle},
 			}},
 		)
 	} else {
@@ -150,6 +141,10 @@ func menuRows(sw int) []menuRow {
 		plainRow("", silver),
 		plainRow(strings.Repeat("━", sepWidth), dim),
 		plainRow("", silver),
+		menuRow{segments: []segment{
+			{"[ L ]  ", keyBracket},
+			{"Leaderboard", silver},
+		}},
 		menuRow{segments: []segment{
 			{"[ Q ]  ", keyBracket},
 			{"Quit", silver},
@@ -204,6 +199,9 @@ func runMenu(screen tcell.Screen) (Difficulty, bool) {
 				return Intermediate, true
 			case '3':
 				return Expert, true
+			case 'l', 'L':
+				runLeaderboard(screen)
+				drawMenu(screen)
 			}
 		case *tcell.EventResize:
 			screen.Sync()

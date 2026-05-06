@@ -6,16 +6,21 @@ import (
 )
 
 type Game struct {
-	grid        [][]Tile
-	state       GameState
-	totalMines  int
-	flagsPlaced int
-	cursorI     int
-	cursorJ     int
-	minesPlaced bool
-	difficulty  Difficulty
-	startTime   time.Time
-	endTime     time.Time
+	grid               [][]Tile
+	state              GameState
+	totalMines         int
+	flagsPlaced        int
+	cursorI            int
+	cursorJ            int
+	minesPlaced        bool
+	difficulty         Difficulty
+	startTime          time.Time
+	endTime            time.Time
+	requestMenu        bool
+	requestLeaderboard bool
+	lastWinSeconds     int
+	lastWinRank        int
+	lastWinIsBest      bool
 }
 
 func NewGame(d Difficulty) *Game {
@@ -133,6 +138,12 @@ func (g *Game) settleEndState() {
 		if g.endTime.IsZero() {
 			g.endTime = time.Now()
 		}
+		seconds := int(g.elapsed().Seconds())
+		g.lastWinSeconds = seconds
+		rank, isBest := leaderboard.record(g.difficulty, seconds)
+		g.lastWinRank = rank
+		g.lastWinIsBest = isBest
+		saveLeaderboard(leaderboard)
 	}
 }
 
@@ -153,4 +164,12 @@ func (g *Game) Restart() {
 
 func (g *Game) SetDifficulty(d Difficulty) {
 	*g = *NewGame(d)
+}
+
+func (g *Game) RequestMenu() {
+	g.requestMenu = true
+}
+
+func (g *Game) RequestLeaderboard() {
+	g.requestLeaderboard = true
 }

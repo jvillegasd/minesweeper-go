@@ -153,42 +153,61 @@ func (g *Game) drawStatus(s tcell.Screen, sw, y int) {
 		dot,
 		{fmt.Sprintf("%ds", seconds), base.Foreground(textSilver)},
 	}
+
+	if best, ok := leaderboard.best(g.difficulty); ok {
+		segs = append(segs,
+			dot,
+			segment{"best ", base.Foreground(textDim)},
+			segment{fmt.Sprintf("%ds", best), base.Foreground(accentGreen).Bold(true)},
+		)
+	}
 	drawSegments(s, centeredX(sw, segmentsWidth(segs)), y, segs)
 }
 
 func (g *Game) drawHUD(s tcell.Screen, sw, y int) {
+	yellow := base.Foreground(accentYellow).Bold(true)
+	silver := base.Foreground(textSilver)
+
 	var segs []segment
 	switch g.state {
 	case StateWon:
 		segs = []segment{
 			{"YOU WIN", base.Foreground(accentGreen).Bold(true)},
-			{"  ·  press ", base.Foreground(textSilver)},
-			{"r", base.Foreground(accentYellow).Bold(true)},
-			{" to restart  ·  ", base.Foreground(textSilver)},
-			{"q", base.Foreground(accentYellow).Bold(true)},
-			{" to quit", base.Foreground(textSilver)},
+			{" in ", silver},
+			{fmt.Sprintf("%ds", g.lastWinSeconds), base.Foreground(accentGreen).Bold(true)},
 		}
+		if g.lastWinIsBest {
+			segs = append(segs, segment{"  ★ NEW BEST", base.Foreground(accentYellow).Bold(true)})
+		} else if g.lastWinRank > 0 {
+			segs = append(segs, segment{
+				fmt.Sprintf("  ·  rank #%d", g.lastWinRank),
+				silver,
+			})
+		}
+		segs = append(segs,
+			segment{"  ·  ", base.Foreground(textDim)},
+			segment{"r", yellow}, segment{":restart  ", silver},
+			segment{"m", yellow}, segment{":menu  ", silver},
+			segment{"l", yellow}, segment{":leaderboard  ", silver},
+			segment{"q", yellow}, segment{":quit", silver},
+		)
 	case StateLost:
 		segs = []segment{
 			{"BOOM", base.Foreground(accentRed).Bold(true)},
-			{"  ·  press ", base.Foreground(textSilver)},
-			{"r", base.Foreground(accentYellow).Bold(true)},
-			{" to restart  ·  ", base.Foreground(textSilver)},
-			{"q", base.Foreground(accentYellow).Bold(true)},
-			{" to quit", base.Foreground(textSilver)},
+			{"  ·  ", base.Foreground(textDim)},
+			{"r", yellow}, {":restart  ", silver},
+			{"m", yellow}, {":menu  ", silver},
+			{"l", yellow}, {":leaderboard  ", silver},
+			{"q", yellow}, {":quit", silver},
 		}
 	case StatePlaying:
 		segs = []segment{
-			{"arrows", base.Foreground(accentYellow).Bold(true)},
-			{":move  ", base.Foreground(textSilver)},
-			{"space", base.Foreground(accentYellow).Bold(true)},
-			{":reveal  ", base.Foreground(textSilver)},
-			{"f", base.Foreground(accentYellow).Bold(true)},
-			{":flag  ", base.Foreground(textSilver)},
-			{"c", base.Foreground(accentYellow).Bold(true)},
-			{":chord  ", base.Foreground(textSilver)},
-			{"q", base.Foreground(accentYellow).Bold(true)},
-			{":quit", base.Foreground(textSilver)},
+			{"arrows", yellow}, {":move  ", silver},
+			{"space", yellow}, {":reveal  ", silver},
+			{"f", yellow}, {":flag  ", silver},
+			{"c", yellow}, {":chord  ", silver},
+			{"m", yellow}, {":menu  ", silver},
+			{"q", yellow}, {":quit", silver},
 		}
 	}
 	drawSegments(s, centeredX(sw, segmentsWidth(segs)), y, segs)
