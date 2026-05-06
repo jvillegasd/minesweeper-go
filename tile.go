@@ -1,12 +1,14 @@
 package main
 
-import "github.com/minesweeper-go/enums"
-
 type Tile struct {
 	isMine     bool
 	isRevealed bool
 	isFlagged  bool
 	adjMines   int
+}
+
+type coord struct {
+	i, j int
 }
 
 var directions = [8][2]int{
@@ -43,22 +45,73 @@ func (g *Game) revealTile(i, j int) {
 	if !g.isValidCoord(i, j) {
 		return
 	}
-
 	if g.grid[i][j].isFlagged || g.grid[i][j].isRevealed {
 		return
 	}
 
-	g.grid[i][j].isRevealed = true
 	if g.grid[i][j].isMine {
-		g.state = enums.StateLost
+		g.grid[i][j].isRevealed = true
+		g.state = StateLost
 		return
 	}
 
-	if g.grid[i][j].adjMines == 0 {
-		for _, d := range directions {
-			ni, nj := i+d[0], j+d[1]
-			g.revealTile(ni, nj)
+	queue := []coord{{i, j}}
+	for len(queue) > 0 {
+		c := queue[0]
+		queue = queue[1:]
+
+		if !g.isValidCoord(c.i, c.j) {
+			continue
 		}
+		if g.grid[c.i][c.j].isFlagged || g.grid[c.i][c.j].isRevealed {
+			continue
+		}
+		if g.grid[c.i][c.j].isMine {
+			continue
+		}
+
+		g.grid[c.i][c.j].isRevealed = true
+
+		if g.grid[c.i][c.j].adjMines == 0 {
+			for _, d := range directions {
+				queue = append(queue, coord{c.i + d[0], c.j + d[1]})
+			}
+		}
+	}
+}
+
+func (g *Game) chordReveal(i, j int) {
+	if !g.isValidCoord(i, j) {
+		return
+	}
+	t := g.grid[i][j]
+	if !t.isRevealed || t.adjMines == 0 {
+		return
+	}
+
+	flagCount := 0
+	for _, d := range directions {
+		ni, nj := i+d[0], j+d[1]
+		if !g.isValidCoord(ni, nj) {
+			continue
+		}
+		if g.grid[ni][nj].isFlagged {
+			flagCount++
+		}
+	}
+	if flagCount != t.adjMines {
+		return
+	}
+
+	for _, d := range directions {
+		ni, nj := i+d[0], j+d[1]
+		if !g.isValidCoord(ni, nj) {
+			continue
+		}
+		if g.grid[ni][nj].isFlagged || g.grid[ni][nj].isRevealed {
+			continue
+		}
+		g.revealTile(ni, nj)
 	}
 }
 

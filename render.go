@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/gdamore/tcell/v2"
-	"github.com/minesweeper-go/enums"
 )
 
 const cellWidth = 3
+const hudRows = 2
 
 var numberColors = map[int]tcell.Color{
 	1: tcell.ColorBlue,
@@ -77,14 +78,14 @@ func (g *Game) drawHUD(s tcell.Screen) {
 	msgStyle := tcell.StyleDefault.Background(tcell.ColorBlack)
 
 	switch g.state {
-	case enums.StateWon:
-		msg = "you win! press r to restart, q to quit"
+	case StateWon:
+		msg = "you win! r: restart  1/2/3: difficulty  q: quit"
 		msgStyle = msgStyle.Foreground(tcell.ColorGreen).Bold(true)
-	case enums.StateLost:
-		msg = "boom! press r to restart, q to quit"
+	case StateLost:
+		msg = "boom! r: restart  1/2/3: difficulty  q: quit"
 		msgStyle = msgStyle.Foreground(tcell.ColorRed).Bold(true)
-	case enums.StatePlaying:
-		msg = "arrows: move  space/enter: reveal  f: flag  q: quit"
+	case StatePlaying:
+		msg = "arrows: move  space/enter: reveal  f: flag  c: chord  q: quit"
 		msgStyle = msgStyle.Foreground(tcell.ColorSilver)
 	}
 
@@ -95,7 +96,9 @@ func (g *Game) drawHUD(s tcell.Screen) {
 }
 
 func (g *Game) drawStatus(s tcell.Screen) {
-	msg := fmt.Sprintf("flags: %d / %d", g.flagsPlaced, g.totalMines)
+	seconds := int(g.elapsed().Seconds())
+	msg := fmt.Sprintf("flags: %d / %d  |  %s  |  %ds",
+		g.flagsPlaced, g.totalMines, g.difficulty, seconds)
 
 	fg := tcell.ColorYellow
 	if g.flagsPlaced > g.totalMines {
@@ -114,6 +117,22 @@ func (g *Game) drawStatus(s tcell.Screen) {
 
 func (g *Game) draw(s tcell.Screen) {
 	s.Clear()
+
+	sw, sh := s.Size()
+	needW := len(g.grid[0]) * cellWidth
+	needH := len(g.grid) + hudRows
+	if sw < needW || sh < needH {
+		msg := fmt.Sprintf("terminal too small — need %dx%d, got %dx%d",
+			needW, needH, sw, sh)
+		style := tcell.StyleDefault.
+			Background(tcell.ColorBlack).
+			Foreground(tcell.ColorRed).
+			Bold(true)
+		drawString(s, 0, 0, msg, style)
+		s.Show()
+		return
+	}
+
 	g.drawBoard(s)
 	g.drawStatus(s)
 	g.drawHUD(s)

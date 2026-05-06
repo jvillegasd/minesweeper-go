@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/minesweeper-go/enums"
 )
 
 func main() {
@@ -20,8 +20,16 @@ func main() {
 	}
 	defer screen.Fini()
 
-	game := NewGame(enums.Beginner)
+	game := NewGame(Beginner)
 	game.draw(screen)
+
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			screen.PostEvent(tcell.NewEventInterrupt(nil))
+		}
+	}()
 
 	for {
 		ev := screen.PollEvent()
@@ -35,7 +43,7 @@ func main() {
 				continue
 			}
 
-			if game.state != enums.StatePlaying {
+			if game.state != StatePlaying {
 				continue
 			}
 
@@ -45,6 +53,8 @@ func main() {
 			}
 		case *tcell.EventResize:
 			screen.Sync()
+			game.draw(screen)
+		case *tcell.EventInterrupt:
 			game.draw(screen)
 		}
 	}

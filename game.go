@@ -1,26 +1,27 @@
 package main
 
 import (
-	"github.com/minesweeper-go/enums"
 	"math/rand/v2"
+	"time"
 )
 
 type Game struct {
 	grid        [][]Tile
-	state       enums.GameState
+	state       GameState
 	totalMines  int
-	totalTiles  int
 	flagsPlaced int
 	cursorI     int
 	cursorJ     int
 	minesPlaced bool
-	difficulty  enums.Difficulty
+	difficulty  Difficulty
+	startTime   time.Time
+	endTime     time.Time
 }
 
-func NewGame(d enums.Difficulty) *Game {
-	level, ok := enums.Levels[d]
+func NewGame(d Difficulty) *Game {
+	level, ok := Levels[d]
 	if !ok {
-		level = enums.Levels[enums.Beginner]
+		level = Levels[Beginner]
 	}
 
 	grid := make([][]Tile, level.Height)
@@ -30,9 +31,7 @@ func NewGame(d enums.Difficulty) *Game {
 
 	return &Game{
 		grid:       grid,
-		state:      enums.StatePlaying,
 		totalMines: level.Mines,
-		totalTiles: level.Height * level.Width,
 		difficulty: d,
 	}
 }
@@ -106,21 +105,52 @@ func (g *Game) MoveCursor(di, dj int) {
 func (g *Game) RevealAtCursor() {
 	if !g.minesPlaced {
 		g.placeMines(g.cursorI, g.cursorJ)
+		g.startTime = time.Now()
 	}
 	g.revealTile(g.cursorI, g.cursorJ)
-	if g.state == enums.StateLost {
-		g.revealAllMines()
-		return
-	}
-	if g.checkWin() {
-		g.state = enums.StateWon
-	}
+	g.settleEndState()
 }
 
 func (g *Game) FlagAtCursor() {
 	g.toggleFlag(g.cursorI, g.cursorJ)
 }
 
+func (g *Game) ChordAtCursor() {
+	g.chordReveal(g.cursorI, g.cursorJ)
+	g.settleEndState()
+}
+
+func (g *Game) settleEndState() {
+	if g.state == StateLost {
+		g.revealAllMines()
+		if g.endTime.IsZero() {
+			g.endTime = time.Now()
+		}
+		return
+	}
+	if g.checkWin() {
+		g.state = StateWon
+		if g.endTime.IsZero() {
+			g.endTime = time.Now()
+		}
+	}
+}
+
+func (g *Game) elapsed() time.Duration {
+	if g.startTime.IsZero() {
+		return 0
+	}
+	end := g.endTime
+	if end.IsZero() {
+		end = time.Now()
+	}
+	return end.Sub(g.startTime)
+}
+
 func (g *Game) Restart() {
 	*g = *NewGame(g.difficulty)
+}
+
+func (g *Game) SetDifficulty(d Difficulty) {
+	*g = *NewGame(d)
 }

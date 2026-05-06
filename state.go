@@ -1,4 +1,4 @@
-package enums
+package main
 
 type GameState int
 
