@@ -47,6 +47,9 @@ func main() {
 		fmt.Println("failed to init screen:", err)
 		os.Exit(1)
 	}
+	screen.SetStyle(tcell.StyleDefault.
+		Background(tcell.ColorBlack).
+		Foreground(tcell.ColorWhite))
 	defer screen.Fini()
 
 	if !skipMenu {

@@ -1,6 +1,10 @@
 package main
 
-import "github.com/gdamore/tcell/v2"
+import (
+	"strings"
+
+	"github.com/gdamore/tcell/v2"
+)
 
 var titleArt = []string{
 	"███╗   ███╗██╗███╗   ██╗███████╗███████╗██╗    ██╗███████╗███████╗██████╗ ███████╗██████╗ ",
@@ -11,80 +15,122 @@ var titleArt = []string{
 	"╚═╝     ╚═╝╚═╝╚═╝  ╚═╝╚══════╝╚══════╝ ╚══╝╚══╝ ╚══════╝╚══════╝╚═╝     ╚══════╝╚═╝  ╚═╝",
 }
 
-type menuLine struct {
+type segment struct {
 	text  string
 	style tcell.Style
 }
 
-func menuLines() []menuLine {
-	titleStyle := tcell.StyleDefault.
-		Background(tcell.ColorBlack).
-		Foreground(tcell.ColorRed).
-		Bold(true)
-	taglineStyle := tcell.StyleDefault.
-		Background(tcell.ColorBlack).
-		Foreground(tcell.ColorGray).
-		Italic(true)
-	headerStyle := tcell.StyleDefault.
-		Background(tcell.ColorBlack).
-		Foreground(tcell.ColorYellow).
-		Bold(true)
-	optionStyle := tcell.StyleDefault.
-		Background(tcell.ColorBlack).
-		Foreground(tcell.ColorSilver)
-	hintStyle := tcell.StyleDefault.
-		Background(tcell.ColorBlack).
-		Foreground(tcell.ColorGray)
+type menuRow struct {
+	segments []segment
+}
 
-	lines := make([]menuLine, 0, len(titleArt)+10)
-	for _, t := range titleArt {
-		lines = append(lines, menuLine{t, titleStyle})
+func (r menuRow) width() int {
+	n := 0
+	for _, s := range r.segments {
+		n += len([]rune(s.text))
 	}
-	lines = append(lines,
-		menuLine{"", optionStyle},
-		menuLine{"— built in Go —", taglineStyle},
-		menuLine{"", optionStyle},
-		menuLine{"SELECT A DIFFICULTY", headerStyle},
-		menuLine{"", optionStyle},
-		menuLine{"[ 1 ]  Beginner       9 × 9    10 mines", optionStyle},
-		menuLine{"[ 2 ]  Intermediate   16 × 16  40 mines", optionStyle},
-		menuLine{"[ 3 ]  Expert         30 × 16  99 mines", optionStyle},
-		menuLine{"", optionStyle},
-		menuLine{"[ Q ]  Quit", hintStyle},
+	return n
+}
+
+func plainRow(text string, style tcell.Style) menuRow {
+	return menuRow{segments: []segment{{text, style}}}
+}
+
+func drawSegments(s tcell.Screen, x, y int, segs []segment) {
+	cursor := x
+	for _, seg := range segs {
+		for _, r := range []rune(seg.text) {
+			s.SetContent(cursor, y, r, nil, seg.style)
+			cursor++
+		}
+	}
+}
+
+func menuRows() []menuRow {
+	titleStyles := []tcell.Style{
+		base.Foreground(tcell.NewRGBColor(255, 100, 100)).Bold(true),
+		base.Foreground(tcell.NewRGBColor(235, 80, 80)).Bold(true),
+		base.Foreground(tcell.NewRGBColor(215, 60, 60)).Bold(true),
+		base.Foreground(tcell.NewRGBColor(190, 45, 45)).Bold(true),
+		base.Foreground(tcell.NewRGBColor(165, 30, 30)).Bold(true),
+		base.Foreground(tcell.NewRGBColor(140, 20, 20)).Bold(true),
+	}
+
+	tagline := base.Foreground(textSilver).Italic(true)
+	header := base.Foreground(accentYellow).Bold(true)
+	keyBracket := base.Foreground(accentYellow).Bold(true)
+	silver := base.Foreground(textSilver)
+	dim := base.Foreground(textDim)
+	green := base.Foreground(accentGreen).Bold(true)
+	amber := base.Foreground(accentYellow).Bold(true)
+	red := base.Foreground(accentRed).Bold(true)
+
+	separator := strings.Repeat("━", 60)
+
+	rows := make([]menuRow, 0, len(titleArt)+16)
+	for i, line := range titleArt {
+		rows = append(rows, plainRow(line, titleStyles[i]))
+	}
+
+	rows = append(rows,
+		plainRow("", silver),
+		plainRow("✦  built in Go  ✦", tagline),
+		plainRow("", silver),
+		plainRow(separator, dim),
+		plainRow("", silver),
+		plainRow("SELECT A DIFFICULTY", header),
+		plainRow("", silver),
+		menuRow{segments: []segment{
+			{"[ 1 ]  ", keyBracket},
+			{"Beginner       ", green},
+			{"·  9 × 9    ·  10 mines", silver},
+		}},
+		menuRow{segments: []segment{
+			{"[ 2 ]  ", keyBracket},
+			{"Intermediate   ", amber},
+			{"·  16 × 16  ·  40 mines", silver},
+		}},
+		menuRow{segments: []segment{
+			{"[ 3 ]  ", keyBracket},
+			{"Expert         ", red},
+			{"·  30 × 16  ·  99 mines", silver},
+		}},
+		plainRow("", silver),
+		plainRow(separator, dim),
+		plainRow("", silver),
+		menuRow{segments: []segment{
+			{"[ Q ]  ", keyBracket},
+			{"Quit", silver},
+		}},
 	)
-	return lines
+	return rows
 }
 
 func drawMenu(s tcell.Screen) {
 	s.Clear()
 	sw, sh := s.Size()
 
-	lines := menuLines()
+	rows := menuRows()
 
 	needW := 0
-	for _, ln := range lines {
-		w := len([]rune(ln.text))
-		if w > needW {
+	for _, r := range rows {
+		if w := r.width(); w > needW {
 			needW = w
 		}
 	}
-	needH := len(lines)
+	needH := len(rows)
 
 	if sw < needW || sh < needH {
-		style := tcell.StyleDefault.
-			Background(tcell.ColorBlack).
-			Foreground(tcell.ColorRed).
-			Bold(true)
+		style := base.Foreground(accentRed).Bold(true)
 		drawString(s, 0, 0, "terminal too small for menu — resize", style)
 		s.Show()
 		return
 	}
 
 	startY := (sh - needH) / 2
-	for i, ln := range lines {
-		runes := len([]rune(ln.text))
-		x := (sw - runes) / 2
-		drawString(s, x, startY+i, ln.text, ln.style)
+	for i, r := range rows {
+		x := (sw - r.width()) / 2
+		drawSegments(s, x, startY+i, r.segments)
 	}
 	s.Show()
 }
