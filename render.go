@@ -8,11 +8,13 @@ import (
 )
 
 const (
-	cellWidth = 3
-	belowRows = 4 // gap + separator + status + hud
+	cellWidth  = 3
+	belowRows  = 4 // gap + separator + status + hud
+	borderRows = 2 // top + bottom border
+	borderCols = 2 // left + right border
 )
 
-var base = tcell.StyleDefault.Background(tcell.ColorBlack)
+var base = tcell.StyleDefault
 
 var (
 	boardBg     = tcell.NewRGBColor(22, 24, 38)
@@ -68,6 +70,22 @@ func tileGlyph(t Tile, parity int) (rune, tcell.Style) {
 			style = style.Foreground(c)
 		}
 		return rune('0' + t.adjMines), style
+	}
+}
+
+func drawBorder(s tcell.Screen, x, y, w, h int, style tcell.Style) {
+	s.SetContent(x, y, '╭', nil, style)
+	s.SetContent(x+w-1, y, '╮', nil, style)
+	s.SetContent(x, y+h-1, '╰', nil, style)
+	s.SetContent(x+w-1, y+h-1, '╯', nil, style)
+
+	for i := 1; i < w-1; i++ {
+		s.SetContent(x+i, y, '─', nil, style)
+		s.SetContent(x+i, y+h-1, '─', nil, style)
+	}
+	for i := 1; i < h-1; i++ {
+		s.SetContent(x, y+i, '│', nil, style)
+		s.SetContent(x+w-1, y+i, '│', nil, style)
 	}
 }
 
@@ -182,8 +200,8 @@ func (g *Game) draw(s tcell.Screen) {
 	sw, sh := s.Size()
 	boardW := len(g.grid[0]) * cellWidth
 	boardH := len(g.grid)
-	needW := boardW
-	needH := boardH + belowRows
+	needW := boardW + borderCols
+	needH := boardH + borderRows + belowRows
 
 	if sw < needW || sh < needH {
 		msg := fmt.Sprintf("terminal too small — need %d×%d, got %d×%d",
@@ -193,15 +211,17 @@ func (g *Game) draw(s tcell.Screen) {
 		return
 	}
 
-	offsetX := (sw - boardW) / 2
-	offsetY := (sh - needH) / 2
-	if offsetY < 0 {
-		offsetY = 0
+	boardX := (sw - boardW) / 2
+	boardY := (sh-needH)/2 + 1
+	if boardY < 1 {
+		boardY = 1
 	}
 
-	g.drawBoard(s, offsetX, offsetY)
+	drawBorder(s, boardX-1, boardY-1, boardW+borderCols, boardH+borderRows,
+		base.Foreground(tcell.ColorWhite))
+	g.drawBoard(s, boardX, boardY)
 
-	sepY := offsetY + boardH + 1
+	sepY := boardY + boardH + 2
 	g.drawSeparator(s, sw, sepY)
 	g.drawStatus(s, sw, sepY+1)
 	g.drawHUD(s, sw, sepY+2)
