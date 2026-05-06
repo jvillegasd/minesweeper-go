@@ -3,12 +3,41 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 )
 
+func parseDifficulty(arg string) (Difficulty, bool) {
+	switch strings.ToLower(arg) {
+	case "beginner", "b":
+		return Beginner, true
+	case "intermediate", "i":
+		return Intermediate, true
+	case "expert", "e":
+		return Expert, true
+	}
+	return 0, false
+}
+
 func main() {
+	var (
+		startDifficulty Difficulty
+		skipMenu        bool
+	)
+
+	if len(os.Args) > 1 {
+		d, ok := parseDifficulty(os.Args[1])
+		if !ok {
+			fmt.Fprintf(os.Stderr, "unknown difficulty: %s\n", os.Args[1])
+			fmt.Fprintln(os.Stderr, "valid: beginner, intermediate, expert")
+			os.Exit(1)
+		}
+		startDifficulty = d
+		skipMenu = true
+	}
+
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		fmt.Println("failed to create screen:", err)
@@ -20,7 +49,15 @@ func main() {
 	}
 	defer screen.Fini()
 
-	game := NewGame(Beginner)
+	if !skipMenu {
+		d, ok := runMenu(screen)
+		if !ok {
+			return
+		}
+		startDifficulty = d
+	}
+
+	game := NewGame(startDifficulty)
 	game.draw(screen)
 
 	go func() {

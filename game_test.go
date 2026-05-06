@@ -11,9 +11,9 @@ func TestZeroValueOfGameState(t *testing.T) {
 
 func TestNewGameDimensions(t *testing.T) {
 	cases := []struct {
-		d              Difficulty
-		height, width  int
-		mines          int
+		d             Difficulty
+		height, width int
+		mines         int
 	}{
 		{Beginner, 9, 9, 10},
 		{Intermediate, 16, 16, 40},
